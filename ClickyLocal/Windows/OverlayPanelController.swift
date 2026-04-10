@@ -29,7 +29,7 @@ final class OverlayPanelController {
         panel.hidesOnDeactivate = false
         panel.contentView = contentView
         panel.isMovableByWindowBackground = false
-        panel.ignoresMouseEvents = true
+        panel.ignoresMouseEvents = false
 
         self.panel = panel
     }
