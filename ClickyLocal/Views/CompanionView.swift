@@ -70,18 +70,18 @@ struct CompanionView: View {
         }
     }
 
+    private static let dotColor = Color(red: 0.71, green: 0.83, blue: 0.95)
+
     private var avatarView: some View {
         ZStack {
-            // Soft outer glow — breathes slowly
             Circle()
-                .fill(.primary.opacity(0.03))
-                .frame(width: 20, height: 20)
-                .scaleEffect(breathe ? 1.8 : 1.2)
-                .opacity(breathe ? 0.6 : 0.3)
+                .fill(Self.dotColor.opacity(0.25))
+                .frame(width: 22, height: 22)
+                .scaleEffect(breathe ? 1.6 : 1.1)
+                .opacity(breathe ? 0.7 : 0.3)
 
-            // Main dot
             Circle()
-                .fill(.primary.opacity(0.8))
+                .fill(Self.dotColor)
                 .frame(width: 10, height: 10)
                 .scaleEffect(isPressed ? 0.7 : 1.0)
                 .animation(.spring(response: 0.12, dampingFraction: 0.5), value: isPressed)

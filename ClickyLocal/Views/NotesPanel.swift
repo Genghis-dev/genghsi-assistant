@@ -193,33 +193,30 @@ struct NoteListRow: View {
             HStack(spacing: 0) {
                 Spacer()
 
-                // Pin action
                 Button(action: {
                     withAnimation(.spring(response: 0.2)) { offset = 0 }
                     onPin()
                 }) {
-                    Image(systemName: note.isPinned ? "pin.slash.fill" : "pin.fill")
-                        .font(.system(size: 12))
+                    Image(systemName: note.isPinned ? "pin.slash" : "pin")
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(.white)
-                        .frame(width: 50, height: .infinity)
+                        .frame(width: 52, height: 52)
+                        .background(Color(red: 0.55, green: 0.55, blue: 0.58))
                 }
                 .buttonStyle(.plain)
-                .background(Color.primary.opacity(0.5))
 
-                // Delete action
                 Button(action: {
                     withAnimation(.spring(response: 0.2)) { offset = 0 }
                     onDelete()
                 }) {
-                    Image(systemName: "trash.fill")
-                        .font(.system(size: 12))
+                    Image(systemName: "trash")
+                        .font(.system(size: 13, weight: .medium))
                         .foregroundStyle(.white)
-                        .frame(width: 50, height: .infinity)
+                        .frame(width: 52, height: 52)
+                        .background(Color(red: 0.9, green: 0.3, blue: 0.3))
                 }
                 .buttonStyle(.plain)
-                .background(Color.red.opacity(0.8))
             }
-            .clipShape(Rectangle())
 
             // Main row content
             HStack(spacing: 0) {
