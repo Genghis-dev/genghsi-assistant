@@ -5,6 +5,7 @@ struct CompanionView: View {
 
     @State private var isPressed = false
     @State private var showCursor = true
+    @State private var breathe = false
 
     var body: some View {
         ZStack {
@@ -37,7 +38,6 @@ struct CompanionView: View {
         .animation(.spring(response: 0.25, dampingFraction: 0.8), value: showCursor)
         .onChange(of: manager.isRadialMenuOpen) { _, isOpen in
             if isOpen {
-                // Quick press effect
                 isPressed = true
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                     isPressed = false
@@ -63,13 +63,28 @@ struct CompanionView: View {
                 showCursor = true
             }
         }
+        .onAppear {
+            withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) {
+                breathe = true
+            }
+        }
     }
 
     private var avatarView: some View {
-        Image(systemName: "cursorarrow")
-            .font(.system(size: 22, weight: .medium))
-            .foregroundStyle(.primary.opacity(0.85))
-            .scaleEffect(isPressed ? 0.85 : 1.0)
-            .animation(.spring(response: 0.12, dampingFraction: 0.5), value: isPressed)
+        ZStack {
+            // Soft outer glow — breathes slowly
+            Circle()
+                .fill(.primary.opacity(0.03))
+                .frame(width: 20, height: 20)
+                .scaleEffect(breathe ? 1.8 : 1.2)
+                .opacity(breathe ? 0.6 : 0.3)
+
+            // Main dot
+            Circle()
+                .fill(.primary.opacity(0.8))
+                .frame(width: 10, height: 10)
+                .scaleEffect(isPressed ? 0.7 : 1.0)
+                .animation(.spring(response: 0.12, dampingFraction: 0.5), value: isPressed)
+        }
     }
 }
