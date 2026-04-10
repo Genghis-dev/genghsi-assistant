@@ -33,8 +33,8 @@ struct CompanionView: View {
 
     private var avatarView: some View {
         ZStack(alignment: .topLeading) {
-            Image(systemName: "cursorarrow.fill")
-                .font(.system(size: 24, weight: .regular))
+            Image(systemName: "cursorarrow")
+                .font(.system(size: 24, weight: .medium))
                 .foregroundStyle(.primary.opacity(0.85))
                 .shadow(color: .black.opacity(0.12), radius: 3, y: 1)
 

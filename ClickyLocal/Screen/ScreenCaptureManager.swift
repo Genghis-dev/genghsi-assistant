@@ -1,6 +1,7 @@
 import Foundation
 import ScreenCaptureKit
 import AppKit
+import CoreGraphics
 
 final class ScreenCaptureManager {
     static let shared = ScreenCaptureManager()
@@ -9,7 +10,17 @@ final class ScreenCaptureManager {
 
     /// Capture the main display and return as base64-encoded JPEG
     func captureScreen() async throws -> String {
-        let content = try await SCShareableContent.current
+        // Try ScreenCaptureKit first, fall back to CGDisplayCreateImage
+        do {
+            return try await captureWithSCKit()
+        } catch {
+            return try captureWithCGDisplay()
+        }
+    }
+
+    private func captureWithSCKit() async throws -> String {
+        // Request permission explicitly
+        let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: true)
         guard let display = content.displays.first else {
             throw ScreenCaptureError.noDisplay
         }
@@ -25,14 +36,25 @@ final class ScreenCaptureManager {
             configuration: config
         )
 
-        // Convert CGImage to JPEG base64
+        return try encodeToBase64(image)
+    }
+
+    private func captureWithCGDisplay() throws -> String {
+        guard let displayID = CGMainDisplayID() as CGDirectDisplayID?,
+              let image = CGDisplayCreateImage(displayID) else {
+            throw ScreenCaptureError.noDisplay
+        }
+
+        return try encodeToBase64(image)
+    }
+
+    private func encodeToBase64(_ image: CGImage) throws -> String {
         let nsImage = NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height))
         guard let tiffData = nsImage.tiffRepresentation,
               let bitmap = NSBitmapImageRep(data: tiffData),
               let jpegData = bitmap.representation(using: .jpeg, properties: [.compressionFactor: 0.6]) else {
             throw ScreenCaptureError.conversionFailed
         }
-
         return jpegData.base64EncodedString()
     }
 }
