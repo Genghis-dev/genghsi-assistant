@@ -1,6 +1,14 @@
 import Cocoa
 import SwiftUI
 
+/// A floating panel that never steals focus from other apps.
+/// Clicks inside the panel work, but keyboard focus stays with the frontmost app.
+/// The panel becomes key only when the user explicitly clicks a text field inside it.
+final class FloatingToolPanel: NSPanel {
+    override var canBecomeKey: Bool { true }
+    override var canBecomeMain: Bool { false }
+}
+
 final class ToolPanelController {
     private var panel: NSPanel?
     private var currentTool: CompanionTool?
@@ -35,7 +43,7 @@ final class ToolPanelController {
             panelSize = NSSize(width: 270, height: 360)
         }
 
-        let panel = NSPanel(
+        let panel = FloatingToolPanel(
             contentRect: NSRect(origin: .zero, size: panelSize),
             styleMask: [.nonactivatingPanel, .titled, .closable, .resizable],
             backing: .buffered,
@@ -50,6 +58,7 @@ final class ToolPanelController {
         panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
         panel.animationBehavior = .utilityWindow
         panel.hidesOnDeactivate = false
+        panel.becomesKeyOnlyIfNeeded = true
         panel.contentView = contentView
         panel.backgroundColor = .clear
 
