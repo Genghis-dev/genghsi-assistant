@@ -2,26 +2,23 @@ import Cocoa
 import SwiftUI
 
 final class ToolPanelController {
-    private var panel: NSPanel?
-    private var currentTool: CompanionTool?
+    private var panels: [CompanionTool: NSPanel] = [:]
 
     func show(tool: CompanionTool, near point: CGPoint) {
-        // If same tool, toggle off
-        if currentTool == tool, panel?.isVisible == true {
-            hide()
-            CompanionManager.shared.isToolPanelOpen = false
+        // If already open, toggle it off
+        if let existing = panels[tool], existing.isVisible {
+            existing.orderOut(nil)
+            panels.removeValue(forKey: tool)
+            updateToolPanelState()
             return
         }
-
-        hide()
-        currentTool = tool
 
         let contentView: NSView
         let panelSize: NSSize
         switch tool {
         case .notes:
             contentView = NSHostingView(rootView: NotesPanelView())
-            panelSize = NSSize(width: 260, height: 340)
+            panelSize = NSSize(width: 280, height: 380)
         case .chat:
             contentView = NSHostingView(rootView: ChatView())
             panelSize = NSSize(width: 300, height: 400)
@@ -54,41 +51,26 @@ final class ToolPanelController {
         panel.contentView = contentView
         panel.backgroundColor = .clear
 
-        // Position to the right of the companion
-        let x = point.x + 40
-        let y = point.y - 170
+        // Stack panels with offset so they don't overlap exactly
+        let offset = CGFloat(panels.count) * 30
+        let x = point.x + 40 + offset
+        let y = point.y - 170 - offset
         panel.setFrameOrigin(NSPoint(x: x, y: y))
         panel.orderFrontRegardless()
-        CompanionManager.shared.isToolPanelOpen = true
 
-        self.panel = panel
+        panels[tool] = panel
+        updateToolPanelState()
     }
 
-    func hide() {
-        panel?.orderOut(nil)
-        panel = nil
-        currentTool = nil
-        CompanionManager.shared.isToolPanelOpen = false
-    }
-}
-
-struct PlaceholderToolView: View {
-    let tool: CompanionTool
-
-    var body: some View {
-        VStack(spacing: 12) {
-            Image(systemName: tool.icon)
-                .font(.system(size: 32))
-                .foregroundStyle(.tertiary)
-            Text(tool.rawValue)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(.secondary)
-            Text("Coming soon")
-                .font(.system(size: 11))
-                .foregroundStyle(.tertiary)
+    func hideAll() {
+        for (_, panel) in panels {
+            panel.orderOut(nil)
         }
-        .frame(width: 260, height: 340)
-        .background(.ultraThinMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        panels.removeAll()
+        updateToolPanelState()
+    }
+
+    private func updateToolPanelState() {
+        CompanionManager.shared.isToolPanelOpen = !panels.isEmpty
     }
 }

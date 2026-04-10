@@ -190,6 +190,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         stopCursorTracking()
         companionManager.forceDissmiss()
         overlayController?.hide()
-        toolPanelController.hide()
+        // Tool panels stay open — user can keep using them independently
     }
 }
