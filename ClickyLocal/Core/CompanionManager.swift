@@ -10,6 +10,7 @@ final class CompanionManager {
     var isRadialMenuOpen = false
     var isPinned = false
     var selectedTool: CompanionTool?
+    var isToolPanelOpen = false
 
     private init() {}
 

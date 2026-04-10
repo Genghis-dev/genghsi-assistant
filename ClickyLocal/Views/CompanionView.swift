@@ -48,6 +48,13 @@ struct CompanionView: View {
                 }
             }
         }
+        .onChange(of: manager.isToolPanelOpen) { _, open in
+            if !open {
+                withAnimation(.easeIn(duration: 0.2)) {
+                    showCursor = true
+                }
+            }
+        }
         .onChange(of: manager.isVisible) { _, visible in
             if visible {
                 showCursor = true

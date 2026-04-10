@@ -9,6 +9,7 @@ final class ToolPanelController {
         // If same tool, toggle off
         if currentTool == tool, panel?.isVisible == true {
             hide()
+            CompanionManager.shared.isToolPanelOpen = false
             return
         }
 
@@ -58,6 +59,7 @@ final class ToolPanelController {
         let y = point.y - 170
         panel.setFrameOrigin(NSPoint(x: x, y: y))
         panel.orderFrontRegardless()
+        CompanionManager.shared.isToolPanelOpen = true
 
         self.panel = panel
     }
@@ -66,6 +68,7 @@ final class ToolPanelController {
         panel?.orderOut(nil)
         panel = nil
         currentTool = nil
+        CompanionManager.shared.isToolPanelOpen = false
     }
 }
 
