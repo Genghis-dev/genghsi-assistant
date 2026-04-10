@@ -146,7 +146,7 @@ struct ChatView: View {
 
     private func captureAndDescribe() async {
         do {
-            let base64 = try await screenCapture.captureScreen()
+            let base64 = try screenCapture.captureScreen()
             let userMessage = ChatMessage(role: "user", content: "[Screenshot captured] Describe what you see on my screen.")
             messages.append(userMessage)
             streamingResponse = ""
