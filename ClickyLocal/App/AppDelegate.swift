@@ -10,7 +10,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var onboardingWindow: NSWindow?
     private var toolObserverTimer: Timer?
     private var cursorTracker: Timer?
-    private var rightClickMonitor: Any?
+    private var rightClickTap: CFMachPort?
+    private var rightClickRunLoopSource: CFRunLoopSource?
 
     private static let onboardingCompleteKey = "onboardingComplete"
 
@@ -111,20 +112,47 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func setupRightClickMonitor() {
-        // Global right-click to open radial menu
-        rightClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: .rightMouseDown) { [weak self] _ in
-            DispatchQueue.main.async {
-                guard let self, self.companionManager.isVisible else { return }
-                self.companionManager.toggleRadialMenu()
+        // Use a CGEvent tap to intercept right-clicks BEFORE they reach any app.
+        // This prevents the native context menu from appearing when Genghsi is visible.
+        let eventMask: CGEventMask = (1 << CGEventType.rightMouseDown.rawValue)
+
+        guard let tap = CGEvent.tapCreate(
+            tap: .cgSessionEventTap,
+            place: .headInsertEventTap,
+            options: .defaultTap,
+            eventsOfInterest: eventMask,
+            callback: { (proxy, type, event, refcon) -> Unmanaged<CGEvent>? in
+                guard let refcon else { return Unmanaged.passRetained(event) }
+                let delegate = Unmanaged<AppDelegate>.fromOpaque(refcon).takeUnretainedValue()
+
+                guard delegate.companionManager.isVisible else {
+                    return Unmanaged.passRetained(event)
+                }
+
+                // Consume the right-click and toggle radial menu
+                DispatchQueue.main.async {
+                    delegate.companionManager.toggleRadialMenu()
+                }
+                return nil  // nil = event is consumed, never reaches the app underneath
+            },
+            userInfo: Unmanaged.passUnretained(self).toOpaque()
+        ) else {
+            // Fallback: if tap creation fails (no accessibility permission), use global monitor
+            NSEvent.addGlobalMonitorForEvents(matching: .rightMouseDown) { [weak self] _ in
+                DispatchQueue.main.async {
+                    guard let self, self.companionManager.isVisible else { return }
+                    self.companionManager.toggleRadialMenu()
+                }
             }
+            return
         }
-        NSEvent.addLocalMonitorForEvents(matching: .rightMouseDown) { [weak self] event in
-            DispatchQueue.main.async {
-                guard let self, self.companionManager.isVisible else { return }
-                self.companionManager.toggleRadialMenu()
-            }
-            return event
-        }
+
+        let runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
+        CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, .commonModes)
+        CGEvent.tapEnable(tap: tap, enable: true)
+
+        self.rightClickTap = tap
+        self.rightClickRunLoopSource = runLoopSource
     }
 
     // MARK: - Cursor Tracking (with easing)
