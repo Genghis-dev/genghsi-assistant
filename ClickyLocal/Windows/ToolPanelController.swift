@@ -2,75 +2,63 @@ import Cocoa
 import SwiftUI
 
 final class ToolPanelController {
-    private var panels: [CompanionTool: NSPanel] = [:]
+    private var panel: NSPanel?
+    private let panelState = PanelState.shared
 
     func show(tool: CompanionTool, near point: CGPoint) {
-        // If already open, toggle it off
-        if let existing = panels[tool], existing.isVisible {
-            existing.orderOut(nil)
-            panels.removeValue(forKey: tool)
-            updateToolPanelState()
+        // If panel already exists, just switch tab
+        if let existing = panel, existing.isVisible {
+            panelState.switchTo(tool)
             return
         }
 
-        let contentView: NSView
-        let panelSize: NSSize
-        switch tool {
-        case .notes:
-            contentView = NSHostingView(rootView: NotesPanelView())
-            panelSize = NSSize(width: 280, height: 380)
-        case .chat:
-            contentView = NSHostingView(rootView: ChatView())
-            panelSize = NSSize(width: 300, height: 400)
-        case .screenRead:
-            contentView = NSHostingView(rootView: ChatView(captureScreenOnAppear: true))
-            panelSize = NSSize(width: 300, height: 400)
-        case .rewrite:
-            contentView = NSHostingView(rootView: RewriteView())
-            panelSize = NSSize(width: 280, height: 380)
-        case .clipboard:
-            contentView = NSHostingView(rootView: ClipboardPanelView())
-            panelSize = NSSize(width: 270, height: 360)
-        }
+        let contentView = NSHostingView(
+            rootView: UnifiedPanelView(panelState: panelState)
+        )
+        let panelSize = NSSize(width: 340, height: 488)
 
-        let panel = NSPanel(
+        let newPanel = NSPanel(
             contentRect: NSRect(origin: .zero, size: panelSize),
-            styleMask: [.nonactivatingPanel, .titled, .closable, .resizable],
+            styleMask: [.nonactivatingPanel, .titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
         )
 
-        panel.isFloatingPanel = true
-        panel.level = .floating
-        panel.titleVisibility = .hidden
-        panel.titlebarAppearsTransparent = true
-        panel.isMovableByWindowBackground = true
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        panel.animationBehavior = .utilityWindow
-        panel.hidesOnDeactivate = false
-        panel.contentView = contentView
-        panel.backgroundColor = .clear
+        newPanel.isFloatingPanel = true
+        newPanel.level = .floating
+        newPanel.titleVisibility = .hidden
+        newPanel.titlebarAppearsTransparent = true
+        newPanel.isMovableByWindowBackground = true
+        newPanel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        newPanel.animationBehavior = .utilityWindow
+        newPanel.hidesOnDeactivate = false
+        newPanel.contentView = contentView
+        newPanel.backgroundColor = .clear
+        newPanel.isOpaque = false
+        newPanel.hasShadow = true
 
-        // Stack panels with offset so they don't overlap exactly
-        let offset = CGFloat(panels.count) * 30
-        let x = point.x + 40 + offset
-        let y = point.y - 170 - offset
-        panel.setFrameOrigin(NSPoint(x: x, y: y))
-        panel.orderFrontRegardless()
+        // Force-show native traffic lights (NSPanel hides them by default)
+        newPanel.standardWindowButton(.closeButton)?.isHidden = false
+        newPanel.standardWindowButton(.miniaturizeButton)?.isHidden = false
+        newPanel.standardWindowButton(.zoomButton)?.isHidden = false
 
-        panels[tool] = panel
+        let x = point.x + 40
+        let y = point.y - 170
+        newPanel.setFrameOrigin(NSPoint(x: x, y: y))
+        newPanel.orderFrontRegardless()
+
+        panelState.switchTo(tool)
+        panel = newPanel
         updateToolPanelState()
     }
 
     func hideAll() {
-        for (_, panel) in panels {
-            panel.orderOut(nil)
-        }
-        panels.removeAll()
+        panel?.orderOut(nil)
+        panel = nil
         updateToolPanelState()
     }
 
     private func updateToolPanelState() {
-        CompanionManager.shared.isToolPanelOpen = !panels.isEmpty
+        CompanionManager.shared.isToolPanelOpen = panel != nil
     }
 }

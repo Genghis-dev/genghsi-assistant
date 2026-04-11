@@ -6,7 +6,7 @@ final class ContextZoneDetector {
     static let shared = ContextZoneDetector()
 
     var currentApp: String = ""
-    var suggestedTools: [CompanionTool] = CompanionTool.allCases
+    var suggestedDefaultTab: CompanionTool = .chat
 
     private var timer: Timer?
 
@@ -29,27 +29,27 @@ final class ContextZoneDetector {
         let name = app.localizedName ?? ""
         guard name != currentApp else { return }
         currentApp = name
-        suggestedTools = toolsForApp(name)
+        suggestedDefaultTab = defaultTabForApp(name)
     }
 
-    private func toolsForApp(_ name: String) -> [CompanionTool] {
+    private func defaultTabForApp(_ name: String) -> CompanionTool {
         let lowered = name.lowercased()
 
-        // Code editors — prioritize chat + screen read
+        // Code editors — prioritize chat
         if lowered.contains("xcode") || lowered.contains("code") || lowered.contains("terminal") || lowered.contains("iterm") {
-            return [.chat, .screenRead, .notes, .clipboard, .rewrite]
+            return .chat
         }
 
         // Communication — prioritize rewrite
         if lowered.contains("slack") || lowered.contains("discord") || lowered.contains("messages") || lowered.contains("mail") || lowered.contains("teams") {
-            return [.rewrite, .chat, .clipboard, .notes, .screenRead]
+            return .rewrite
         }
 
-        // Browsers — prioritize screen read + notes
+        // Browsers — prioritize notes
         if lowered.contains("safari") || lowered.contains("chrome") || lowered.contains("firefox") || lowered.contains("arc") {
-            return [.screenRead, .notes, .chat, .clipboard, .rewrite]
+            return .notes
         }
 
-        return CompanionTool.allCases
+        return .chat
     }
 }

@@ -3,6 +3,8 @@ import Cocoa
 final class HotkeyManager {
     var onToggle: (() -> Void)?
     var onEscape: (() -> Void)?
+    var onToolSelect: ((CompanionTool) -> Void)?
+    var onNewNote: (() -> Void)?
 
     private var globalMonitor: Any?
     private var localMonitor: Any?
@@ -34,8 +36,28 @@ final class HotkeyManager {
     }
 
     private func handleKey(_ event: NSEvent) {
-        if event.type == .keyDown && event.keyCode == 53 {
+        guard event.type == .keyDown else { return }
+
+        // Escape
+        if event.keyCode == 53 {
             onEscape?()
+            return
+        }
+
+        // Ctrl+number shortcuts for tool selection
+        if event.modifierFlags.contains(.control) {
+            switch event.keyCode {
+            case 18: // Ctrl+1 → Chat
+                onToolSelect?(.chat)
+            case 19: // Ctrl+2 → Notes
+                onToolSelect?(.notes)
+            case 20: // Ctrl+3 → Rewrite
+                onToolSelect?(.rewrite)
+            case 45: // Ctrl+N → New note
+                onNewNote?()
+            default:
+                break
+            }
         }
     }
 

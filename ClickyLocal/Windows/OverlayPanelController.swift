@@ -4,58 +4,58 @@ import SwiftUI
 final class OverlayPanelController {
     private var panel: NSPanel?
     private let companionManager: CompanionManager
+    var onOpenPanel: ((CompanionTool) -> Void)?
 
     init(companionManager: CompanionManager) {
         self.companionManager = companionManager
-        setupPanel()
     }
 
     private func setupPanel() {
-        let contentView = NSHostingView(rootView: CompanionView(manager: companionManager))
+        let contentView = NSHostingView(
+            rootView: CompanionView(
+                manager: companionManager,
+                onOpenPanel: { [weak self] tool in
+                    self?.onOpenPanel?(tool)
+                }
+            )
+        )
 
-        let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 400, height: 400),
+        let newPanel = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 260, height: 60),
             styleMask: [.nonactivatingPanel, .borderless],
             backing: .buffered,
             defer: false
         )
 
-        panel.isFloatingPanel = true
-        panel.level = .floating
-        panel.isOpaque = false
-        panel.backgroundColor = .clear
-        panel.hasShadow = false
-        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-        panel.hidesOnDeactivate = false
-        panel.contentView = contentView
-        panel.isMovableByWindowBackground = false
-        panel.ignoresMouseEvents = false
+        newPanel.isFloatingPanel = true
+        newPanel.level = .floating
+        newPanel.isOpaque = false
+        newPanel.backgroundColor = .clear
+        newPanel.hasShadow = false
+        newPanel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+        newPanel.hidesOnDeactivate = false
+        newPanel.contentView = contentView
+        newPanel.isMovableByWindowBackground = false
+        newPanel.ignoresMouseEvents = false
 
-        self.panel = panel
+        self.panel = newPanel
     }
 
     func show(at point: CGPoint) {
+        if panel == nil {
+            setupPanel()
+        }
         guard let panel = panel, NSScreen.main != nil else { return }
 
-        // Convert from global screen coordinates (origin bottom-left) to window position
-        // Center the panel on the cursor
+        // Position toolbar centered horizontally on cursor, slightly above
         let panelSize = panel.frame.size
         let x = point.x - panelSize.width / 2
-        let y = point.y - panelSize.height / 2
-
+        let y = point.y - panelSize.height / 2 + 20
         panel.setFrameOrigin(NSPoint(x: x, y: y))
         panel.orderFrontRegardless()
     }
 
     func hide() {
         panel?.orderOut(nil)
-    }
-
-    func updatePosition(_ point: CGPoint) {
-        guard let panel = panel else { return }
-        let panelSize = panel.frame.size
-        let x = point.x - panelSize.width / 2
-        let y = point.y - panelSize.height / 2
-        panel.setFrameOrigin(NSPoint(x: x, y: y))
     }
 }

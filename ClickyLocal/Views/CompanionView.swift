@@ -2,89 +2,18 @@ import SwiftUI
 
 struct CompanionView: View {
     @Bindable var manager: CompanionManager
-
-    @State private var isPressed = false
-    @State private var showCursor = true
-    @State private var breathe = false
+    var onOpenPanel: ((CompanionTool) -> Void)?
 
     var body: some View {
         ZStack {
             Color.clear
 
             if manager.isVisible {
-                if manager.isPinned && !manager.isRadialMenuOpen && showCursor {
-                    MiniModeView(manager: manager)
-                        .transition(.scale.combined(with: .opacity))
-                } else {
-                    VStack(spacing: 0) {
-                        if manager.isRadialMenuOpen {
-                            RadialMenuView(manager: manager)
-                                .transition(.scale.combined(with: .opacity))
-                        }
-
-                        if showCursor {
-                            avatarView
-                                .transition(.scale(scale: 0.9).combined(with: .opacity))
-                        }
-                    }
-                    .transition(.scale.combined(with: .opacity))
-                }
+                ToolbarView(manager: manager, onOpenPanel: onOpenPanel)
+                    .transition(.scale(scale: 0.95).combined(with: .opacity))
             }
         }
-        .frame(width: 400, height: 400)
-        .animation(.spring(response: 0.35, dampingFraction: 0.7), value: manager.isVisible)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: manager.isRadialMenuOpen)
-        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: manager.isPinned)
-        .animation(.spring(response: 0.25, dampingFraction: 0.8), value: showCursor)
-        .onChange(of: manager.isRadialMenuOpen) { _, isOpen in
-            if isOpen {
-                isPressed = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                    isPressed = false
-                }
-            }
-        }
-        .onChange(of: manager.selectedTool) { _, tool in
-            if tool != nil {
-                withAnimation(.easeOut(duration: 0.2)) {
-                    showCursor = false
-                }
-            }
-        }
-        .onChange(of: manager.isToolPanelOpen) { _, open in
-            if !open {
-                withAnimation(.easeIn(duration: 0.2)) {
-                    showCursor = true
-                }
-            }
-        }
-        .onChange(of: manager.isVisible) { _, visible in
-            if visible {
-                showCursor = true
-            }
-        }
-        .onAppear {
-            withAnimation(.easeInOut(duration: 2.4).repeatForever(autoreverses: true)) {
-                breathe = true
-            }
-        }
-    }
-
-    private static let dotColor = Color(red: 0.71, green: 0.83, blue: 0.95)
-
-    private var avatarView: some View {
-        ZStack {
-            Circle()
-                .fill(Self.dotColor.opacity(0.25))
-                .frame(width: 22, height: 22)
-                .scaleEffect(breathe ? 1.6 : 1.1)
-                .opacity(breathe ? 0.7 : 0.3)
-
-            Circle()
-                .fill(Self.dotColor)
-                .frame(width: 10, height: 10)
-                .scaleEffect(isPressed ? 0.7 : 1.0)
-                .animation(.spring(response: 0.12, dampingFraction: 0.5), value: isPressed)
-        }
+        .frame(width: 260, height: 60)
+        .animation(.spring(response: 0.25, dampingFraction: 0.7), value: manager.isVisible)
     }
 }

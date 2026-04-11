@@ -9,8 +9,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var toolPanelController = ToolPanelController()
     private var onboardingWindow: NSWindow?
     private var toolObserverTimer: Timer?
-    private var cursorTracker: Timer?
-    private var rightClickMonitor: Any?
 
     private static let onboardingCompleteKey = "onboardingComplete"
 
@@ -20,9 +18,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         setupMenuBar()
         setupOverlay()
         setupHotkey()
-        setupRightClickMonitor()
         startToolObserver()
-        ClipboardMonitor.shared.start()
         ContextZoneDetector.shared.start()
 
         if !UserDefaults.standard.bool(forKey: Self.onboardingCompleteKey) {
@@ -43,7 +39,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 380, height: 540),
+            contentRect: NSRect(x: 0, y: 0, width: 380, height: 480),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
@@ -87,6 +83,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func setupOverlay() {
         overlayController = OverlayPanelController(companionManager: companionManager)
+        overlayController?.onOpenPanel = { [weak self] tool in
+            guard let self else { return }
+            self.toolPanelController.show(tool: tool, near: self.companionManager.position)
+        }
     }
 
     // MARK: - Hotkey & Input
@@ -99,66 +99,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         hotkeyManager.onEscape = { [weak self] in
             DispatchQueue.main.async {
-                guard let self else { return }
-                if self.companionManager.isRadialMenuOpen {
-                    self.companionManager.isRadialMenuOpen = false
-                } else {
-                    self.dismissAll()
-                }
+                self?.handleEscape()
+            }
+        }
+        hotkeyManager.onToolSelect = { [weak self] tool in
+            DispatchQueue.main.async {
+                self?.openTool(tool)
+            }
+        }
+        hotkeyManager.onNewNote = { [weak self] in
+            DispatchQueue.main.async {
+                self?.createNewNote()
             }
         }
         hotkeyManager.start()
-    }
-
-    private func setupRightClickMonitor() {
-        // Global right-click to open radial menu
-        rightClickMonitor = NSEvent.addGlobalMonitorForEvents(matching: .rightMouseDown) { [weak self] _ in
-            DispatchQueue.main.async {
-                guard let self, self.companionManager.isVisible else { return }
-                self.companionManager.toggleRadialMenu()
-            }
-        }
-        NSEvent.addLocalMonitorForEvents(matching: .rightMouseDown) { [weak self] event in
-            DispatchQueue.main.async {
-                guard let self, self.companionManager.isVisible else { return }
-                self.companionManager.toggleRadialMenu()
-            }
-            return event
-        }
-    }
-
-    // MARK: - Cursor Tracking (with easing)
-
-    private var smoothX: CGFloat = 0
-    private var smoothY: CGFloat = 0
-    private let easingFactor: CGFloat = 0.15 // lower = smoother/laggier
-
-    private func startCursorTracking() {
-        let mouseLocation = NSEvent.mouseLocation
-        smoothX = mouseLocation.x
-        smoothY = mouseLocation.y
-
-        cursorTracker = Timer.scheduledTimer(withTimeInterval: 1.0 / 60.0, repeats: true) { [weak self] _ in
-            guard let self, self.companionManager.isVisible else { return }
-
-            // Don't follow cursor when radial menu is open
-            guard !self.companionManager.isRadialMenuOpen else { return }
-
-            let target = NSEvent.mouseLocation
-            // Lerp toward target position
-            self.smoothX += (target.x - self.smoothX) * self.easingFactor
-            self.smoothY += (target.y - self.smoothY) * self.easingFactor
-
-            // Offset 20px right and 20px down (subtract Y because macOS Y is bottom-up)
-            let smoothed = CGPoint(x: self.smoothX + 20, y: self.smoothY - 20)
-            self.companionManager.position = smoothed
-            self.overlayController?.updatePosition(smoothed)
-        }
-    }
-
-    private func stopCursorTracking() {
-        cursorTracker?.invalidate()
-        cursorTracker = nil
     }
 
     // MARK: - Tool Observer
@@ -182,14 +136,46 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let mouseLocation = NSEvent.mouseLocation
             companionManager.summon(at: mouseLocation)
             overlayController?.show(at: mouseLocation)
-            startCursorTracking()
+        }
+    }
+
+    private func openTool(_ tool: CompanionTool) {
+        if !companionManager.isVisible {
+            let mouseLocation = NSEvent.mouseLocation
+            companionManager.summon(at: mouseLocation)
+            overlayController?.show(at: mouseLocation)
+        }
+        toolPanelController.show(tool: tool, near: companionManager.position)
+    }
+
+    @MainActor private func createNewNote() {
+        let store = DataStore.shared
+        _ = store.createNote()
+
+        if !companionManager.isVisible {
+            let mouseLocation = NSEvent.mouseLocation
+            companionManager.summon(at: mouseLocation)
+            overlayController?.show(at: mouseLocation)
+        }
+        toolPanelController.show(tool: .notes, near: companionManager.position)
+    }
+
+    // MARK: - Escape Hierarchy
+
+    private func handleEscape() {
+        // Progressive dismissal:
+        // 1. If panel is open → close panel (toolbar stays)
+        // 2. If toolbar is visible → dismiss everything
+        if companionManager.isToolPanelOpen {
+            toolPanelController.hideAll()
+        } else if companionManager.isVisible {
+            dismissAll()
         }
     }
 
     private func dismissAll() {
-        stopCursorTracking()
         companionManager.forceDissmiss()
         overlayController?.hide()
-        // Tool panels stay open — user can keep using them independently
+        toolPanelController.hideAll()
     }
 }

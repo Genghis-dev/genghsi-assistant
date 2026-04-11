@@ -57,17 +57,6 @@ struct OnboardingView: View {
                         }
                     )
 
-                    // Screen Recording — must be opened manually
-                    PermissionRow(
-                        icon: "rectangle.on.rectangle",
-                        title: "Screen Recording",
-                        subtitle: "Open System Settings and toggle Genghsi on",
-                        status: .openSettings,
-                        action: {
-                            NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")!)
-                        }
-                    )
-
                     // Microphone — can be auto-detected
                     PermissionRow(
                         icon: "mic.fill",
@@ -109,7 +98,7 @@ struct OnboardingView: View {
                                 .font(.system(size: 10, weight: .semibold))
                                 .foregroundStyle(.primary)
                         }
-                        Text("Accessibility and Screen Recording permissions require toggling Genghsi on in System Settings. These can't be auto-detected during development — the app will work once they're enabled.")
+                        Text("Accessibility permission requires toggling Genghsi on in System Settings. This can't be auto-detected during development — the app will work once it's enabled.")
                             .font(.system(size: 10))
                             .foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -121,6 +110,24 @@ struct OnboardingView: View {
                     )
                     .padding(.horizontal, 8)
                     .padding(.top, 4)
+
+                    // What's inside
+                    Divider()
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 4)
+
+                    VStack(spacing: 0) {
+                        featureRow(icon: "bubble.left.fill", title: "Chat", subtitle: "Your private AI, runs locally")
+                        Divider().opacity(0.3).padding(.horizontal, 12)
+                        featureRow(icon: "note.text", title: "Notes", subtitle: "Quick capture, always at hand")
+                        Divider().opacity(0.3).padding(.horizontal, 12)
+                        featureRow(icon: "pencil.and.outline", title: "Rewrite", subtitle: "Fix your messages, keep your voice")
+                    }
+                    .background(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .fill(Color.primary.opacity(0.04))
+                    )
+                    .padding(.horizontal, 8)
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 12)
@@ -146,7 +153,7 @@ struct OnboardingView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
         }
-        .frame(width: 380, height: 540)
+        .frame(width: 380, height: 580)
         .background(.ultraThickMaterial)
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
         .shadow(color: .black.opacity(0.3), radius: 30, y: 10)
@@ -157,6 +164,27 @@ struct OnboardingView: View {
                 checkAutoDetectable()
             }
         }
+    }
+
+    private func featureRow(icon: String, title: String, subtitle: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 20))
+                .foregroundStyle(Color(red: 0.71, green: 0.83, blue: 0.95))
+                .frame(width: 28)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.system(size: 13, weight: .semibold))
+                Text(subtitle)
+                    .font(.system(size: 11))
+                    .foregroundStyle(.secondary)
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
     }
 
     // Only poll permissions that macOS lets us auto-detect
